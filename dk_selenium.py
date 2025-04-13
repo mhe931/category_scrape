@@ -1,7 +1,7 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.firefox.options import Options
+from webdriver_manager.firefox import GeckoDriverManager
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import json
@@ -12,10 +12,12 @@ BASE_URL = "https://www.digikala.com"
 def setup_driver():
     options = Options()
     options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    return driver
+    
+    try:
+        driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()), options=options)
+        return driver
+    except Exception as e:
+        raise Exception("Could not initialize Firefox. Please ensure Firefox is installed. Error: " + str(e))
 
 def get_main_categories(driver):
     driver.get(BASE_URL)
@@ -103,3 +105,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
