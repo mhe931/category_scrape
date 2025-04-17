@@ -1,209 +1,103 @@
-from selenium import webdriver
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.firefox.options import Options
-from webdriver_manager.firefox import GeckoDriverManager
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import json
-import time
+from time import sleep
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-BASE_URL = "https://www.digikala.com"
-
-def setup_driver():
+def scrape_digikala_categories():
+    # Set up Firefox options
     options = Options()
-    options.add_argument("--headless")
-    
-    try:
-        driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()), options=options)
-        return driver
-    except Exception as e:
-        raise Exception("Could not initialize Firefox. Please ensure Firefox is installed. Error: " + str(e))
-
-def get_main_categories(driver):
-    driver.get(BASE_URL)
-    time.sleep(5)  # Increased wait time
-    categories = []
+    options.add_argument("--headless")  # Run in headless mode
+    driver = webdriver.Firefox(options=options)
+    driver.maximize_window()
 
     try:
-        # Try multiple possible selectors for main categories
-        selectors = [
-            'a.c-navi-new__main-link',
-            'div.c-navi-new-list__category-link',
-            'a[data-cro-id*="navigation"]',
-            '.c-navi-new-list__inner-categories a'
-        ]
-        
-        cat_elements = []
-        for selector in selectors:
-            try:
-                elements = driver.find_elements(By.CSS_SELECTOR, selector)
-                if elements:
-                    cat_elements = elements
-                    print(f"Found categories using selector: {selector}")
-                    break
-            except:
-                continue
+        # Navigate to Digikala's homepage
+        driver.get("https://www.digikala.com/")
+        sleep(5)  # Wait for the page to load
 
-        if not cat_elements:
-            print("No categories found with any selector")
-            return categories
+        # Dictionary to store categories and subcategories
+        categories_data = {"categories": {}}
 
-        for el in cat_elements:
-            try:
-                name = el.text.strip()
-                href = el.get_attribute("href")
-                if name and href and "digikala.com" in href:
-                    print(f"Main category: {name} -> {href}")
-                    subcats = get_subcategories(driver, href, 1)
-                    categories.append({
-                        "name": name,
-                        "url": href,
-                        "subcategories": subcats
-                    })
-            except Exception as e:
-                print(f"Error processing category element: {e}")
-                continue
-                
-    except Exception as e:
-        print(f"Error in get_main_categories: {e}")
-    
-    print(f"Found {len(categories)} main categories")
-    return categories
+        # Find the main menu
+        main_menu = driver.find_element(By.ID, "header")
+        menu_items = main_menu.find_elements(By.XPATH, "//a[@class='menu__megamenu-tab--text']")
 
-def get_subcategories(driver, url, level, max_level=3):
-    if level > max_level:
-        return []
+        for menu_item in menu_items:
+            category_name = menu_item.text.strip()
+            # Click on the category to load subcategories
+            ActionChains(driver).move_to_element(menu_item).click().perform()
+            sleep(2)
 
-    subcategories = []
-    try:
-        driver.get(url)
-        time.sleep(5)  # Increased wait time
+            # Get the subcategories for the current category
+            subcategories = menu_item.find_elements(By.XPATH, "./following-sibling::div//ul/li/a")
+            if subcategories:
+                category_urls = []
+                categories_data["categories"][category_name] = {
+                    "url": menu_item.get_attribute("href"),
+                    "subcategories": {}
+                }
 
-        # Try multiple selectors for subcategories
-        selectors = [
-            'a.c-product-box__title',
-            'a.c-listing__link',
-            'div.c-catalog__list a',
-            '.c-navi-new-list__sublist-option a',
-            '.c-navi-new-list__inner-categories a'
-        ]
-        
-        sub_elements = []
-        for selector in selectors:
-            try:
-                elements = driver.find_elements(By.CSS_SELECTOR, selector)
-                if elements:
-                    sub_elements.extend(elements)
-            except:
-                continue
+                for subcategory in subcategories:
+                    subcategory_name = subcategory.text.strip()
+                    subcategory_url = subcategory.get_attribute("href")
+                    categories_data["categories"][category_name]["subcategories"][subcategory_name] = {
+                        "url": subcategory_url
+                    }
 
-        links_seen = set()
-        for el in sub_elements:
-            try:
-                name = el.text.strip()
-                href = el.get_attribute("href")
-                if name and href and href not in links_seen and "digikala.com" in href:
-                    links_seen.add(href)
-                    print(f"{'--' * level} Subcategory: {name} -> {href}")
-                    
-                    filters = get_filters(driver, href)
-                    deeper_subs = get_subcategories(driver, href, level + 1)
-                    
-                    subcategories.append({
-                        "name": name,
-                        "url": href,
-                        "subcategories": deeper_subs,
-                        "filters": filters
-                    })
-                
-                if len(subcategories) >= 5:  # Limit subcategories per level
-                    break
-            except Exception as e:
-                print(f"Error processing subcategory element: {e}")
-                continue
+        return categories_data
 
     except Exception as e:
-        print(f"Error in get_subcategories at level {level}: {e}")
-
-    print(f"Found {len(subcategories)} subcategories at level {level}")
-    return subcategories
-
-def get_filters(driver, url):
-    try:
-        driver.get(url)
-        time.sleep(3)  # Increased wait time
-        filters = {}
-
-        # Try multiple selectors for filter sections
-        filter_selectors = [
-            '[data-testid="filter-section"]',
-            '.c-filter__items',
-            '.c-box__filters'
-        ]
-
-        for selector in filter_selectors:
-            try:
-                filter_sections = driver.find_elements(By.CSS_SELECTOR, selector)
-                if filter_sections:
-                    for section in filter_sections:
-                        try:
-                            # Try different ways to get the title
-                            title_el = None
-                            for title_tag in ['h4', 'h3', 'div.filter-title']:
-                                try:
-                                    title_el = section.find_element(By.CSS_SELECTOR, title_tag)
-                                    break
-                                except:
-                                    continue
-                            
-                            if title_el:
-                                title = title_el.text.strip()
-                                # Try different selectors for filter items
-                                items = []
-                                for item_selector in ['ul > li', '.c-filter__item', '.c-filter__label']:
-                                    try:
-                                        items = section.find_elements(By.CSS_SELECTOR, item_selector)
-                                        if items:
-                                            break
-                                    except:
-                                        continue
-
-                                values = [item.text.strip() for item in items if item.text.strip()]
-                                if values:
-                                    filters[title] = values
-                        except Exception as e:
-                            print(f"Error processing filter section: {e}")
-                            continue
-                    
-                    if filters:  # If we found filters with this selector, stop trying others
-                        break
-            except Exception as e:
-                print(f"Error with filter selector {selector}: {e}")
-                continue
-
-    except Exception as e:
-        print(f"Filter extraction error: {e}")
-    
-    print(f"Found {len(filters)} filter categories")
-    return filters
-
-def main():
-    driver = setup_driver()
-    try:
-        data = {
-            "categories": get_main_categories(driver)
-        }
-        with open("digikala_categories_selenium.json", "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        print("✅ JSON file saved successfully.")
+        print(f"An error occurred: {e}")
+        return None
     finally:
         driver.quit()
 
+def search_subcategories(categories_data, query):
+    if not categories_data:
+        return None
+
+    matching_subcategories = []
+
+    for category, data in categories_data["categories"].items():
+        if "subcategories" in data:
+            for subcategory_name, subcategory_data in data["subcategories"].items():
+                if query.lower() in subcategory_name.lower():
+                    matching_subcategories.append({
+                        "category": category,
+                        "subcategory": subcategory_name,
+                        "url": subcategory_data["url"]
+                    })
+
+    return matching_subcategories
+
+def save_to_json(data, filename):
+    with open(filename, "w", encoding="utf-8") as json_file:
+        json.dump(data, json_file, indent=2, ensure_ascii=False)
+
 if __name__ == "__main__":
-    main()
+    # Scrape categories and subcategories
+    categories_data = scrape_digikala_categories()
 
+    if categories_data:
+        # Save all categories and subcategories to JSON
+        save_to_json(categories_data, "digikala_categories.json")
+        
+        # Example: Search for subcategories containing "phone"
+        search_query = "phone"
+        results = search_subcategories(categories_data, search_query)
+        
+        if results:
+            print(f"Found {len(results)} matching subcategories:")
+            for result in results:
+                print(f"Category: {result['category']}")
+                print(f"Subcategory: {result['subcategory']}")
+                print(f"URL: {result['url']}\n")
+        else:
+            print(f"No subcategories found matching '{search_query}'")
 
-
-
-
-
+    else:
+        print("Failed to retrieve categories data.")
