@@ -21,23 +21,53 @@ def setup_driver():
 
 def get_main_categories(driver):
     driver.get(BASE_URL)
-    time.sleep(2)
+    time.sleep(5)  # Increased wait time
     categories = []
 
     try:
-        cat_elements = driver.find_elements(By.CSS_SELECTOR, 'a.c-navi-new__main-link')
+        # Try multiple possible selectors for main categories
+        selectors = [
+            'a.c-navi-new__main-link',
+            'div.c-navi-new-list__category-link',
+            'a[data-cro-id*="navigation"]',
+            '.c-navi-new-list__inner-categories a'
+        ]
+        
+        cat_elements = []
+        for selector in selectors:
+            try:
+                elements = driver.find_elements(By.CSS_SELECTOR, selector)
+                if elements:
+                    cat_elements = elements
+                    print(f"Found categories using selector: {selector}")
+                    break
+            except:
+                continue
+
+        if not cat_elements:
+            print("No categories found with any selector")
+            return categories
+
         for el in cat_elements:
-            name = el.text.strip()
-            href = el.get_attribute("href")
-            if name and href:
-                print(f"Main category: {name}")
-                subcats = get_subcategories(driver, href, 1)
-                categories.append({
-                    "name": name,
-                    "subcategories": subcats
-                })
-    except NoSuchElementException:
-        print("Main categories not found.")
+            try:
+                name = el.text.strip()
+                href = el.get_attribute("href")
+                if name and href and "digikala.com" in href:
+                    print(f"Main category: {name} -> {href}")
+                    subcats = get_subcategories(driver, href, 1)
+                    categories.append({
+                        "name": name,
+                        "url": href,
+                        "subcategories": subcats
+                    })
+            except Exception as e:
+                print(f"Error processing category element: {e}")
+                continue
+                
+    except Exception as e:
+        print(f"Error in get_main_categories: {e}")
+    
+    print(f"Found {len(categories)} main categories")
     return categories
 
 def get_subcategories(driver, url, level, max_level=3):
@@ -45,50 +75,116 @@ def get_subcategories(driver, url, level, max_level=3):
         return []
 
     subcategories = []
-    driver.get(url)
-    time.sleep(2)
-
     try:
-        sub_elements = driver.find_elements(By.CSS_SELECTOR, 'a.c-product-box__title, a.c-listing__link')
+        driver.get(url)
+        time.sleep(5)  # Increased wait time
+
+        # Try multiple selectors for subcategories
+        selectors = [
+            'a.c-product-box__title',
+            'a.c-listing__link',
+            'div.c-catalog__list a',
+            '.c-navi-new-list__sublist-option a',
+            '.c-navi-new-list__inner-categories a'
+        ]
+        
+        sub_elements = []
+        for selector in selectors:
+            try:
+                elements = driver.find_elements(By.CSS_SELECTOR, selector)
+                if elements:
+                    sub_elements.extend(elements)
+            except:
+                continue
+
         links_seen = set()
         for el in sub_elements:
-            name = el.text.strip()
-            href = el.get_attribute("href")
-            if name and href and href not in links_seen:
-                links_seen.add(href)
-                print(f"{'--' * level} Subcategory: {name}")
-                filters = get_filters(driver, href)
-                deeper_subs = get_subcategories(driver, href, level + 1)
-                subcategories.append({
-                    "name": name,
-                    "subcategories": deeper_subs,
-                    "filters": filters
-                })
-            if len(subcategories) >= 5:
-                break
-    except Exception as e:
-        print(f"Subcategory error at level {level}: {e}")
+            try:
+                name = el.text.strip()
+                href = el.get_attribute("href")
+                if name and href and href not in links_seen and "digikala.com" in href:
+                    links_seen.add(href)
+                    print(f"{'--' * level} Subcategory: {name} -> {href}")
+                    
+                    filters = get_filters(driver, href)
+                    deeper_subs = get_subcategories(driver, href, level + 1)
+                    
+                    subcategories.append({
+                        "name": name,
+                        "url": href,
+                        "subcategories": deeper_subs,
+                        "filters": filters
+                    })
+                
+                if len(subcategories) >= 5:  # Limit subcategories per level
+                    break
+            except Exception as e:
+                print(f"Error processing subcategory element: {e}")
+                continue
 
+    except Exception as e:
+        print(f"Error in get_subcategories at level {level}: {e}")
+
+    print(f"Found {len(subcategories)} subcategories at level {level}")
     return subcategories
 
 def get_filters(driver, url):
-    driver.get(url)
-    time.sleep(2)
-    filters = {}
     try:
-        filter_sections = driver.find_elements(By.CSS_SELECTOR, '[data-testid="filter-section"]')
-        for section in filter_sections:
+        driver.get(url)
+        time.sleep(3)  # Increased wait time
+        filters = {}
+
+        # Try multiple selectors for filter sections
+        filter_selectors = [
+            '[data-testid="filter-section"]',
+            '.c-filter__items',
+            '.c-box__filters'
+        ]
+
+        for selector in filter_selectors:
             try:
-                title_el = section.find_element(By.TAG_NAME, 'h4')
-                title = title_el.text.strip()
-                items = section.find_elements(By.CSS_SELECTOR, 'ul > li')
-                values = [item.text.strip() for item in items if item.text.strip()]
-                if values:
-                    filters[title] = values
-            except NoSuchElementException:
+                filter_sections = driver.find_elements(By.CSS_SELECTOR, selector)
+                if filter_sections:
+                    for section in filter_sections:
+                        try:
+                            # Try different ways to get the title
+                            title_el = None
+                            for title_tag in ['h4', 'h3', 'div.filter-title']:
+                                try:
+                                    title_el = section.find_element(By.CSS_SELECTOR, title_tag)
+                                    break
+                                except:
+                                    continue
+                            
+                            if title_el:
+                                title = title_el.text.strip()
+                                # Try different selectors for filter items
+                                items = []
+                                for item_selector in ['ul > li', '.c-filter__item', '.c-filter__label']:
+                                    try:
+                                        items = section.find_elements(By.CSS_SELECTOR, item_selector)
+                                        if items:
+                                            break
+                                    except:
+                                        continue
+
+                                values = [item.text.strip() for item in items if item.text.strip()]
+                                if values:
+                                    filters[title] = values
+                        except Exception as e:
+                            print(f"Error processing filter section: {e}")
+                            continue
+                    
+                    if filters:  # If we found filters with this selector, stop trying others
+                        break
+            except Exception as e:
+                print(f"Error with filter selector {selector}: {e}")
                 continue
+
     except Exception as e:
         print(f"Filter extraction error: {e}")
+    
+    print(f"Found {len(filters)} filter categories")
     return filters
 
 def main():
@@ -105,6 +201,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
 
 
 

@@ -1,0 +1,31 @@
+schemaVersion: 2.0.0
+components:
+  - name: dev
+    container:
+      image: public.ecr.aws/aws-mde/universal-image:latest
+      memoryLimit: "2Gi"
+      mountSources: true
+      endpoints:
+        - name: web
+          targetPort: 8000
+commands:
+  - id: install
+    exec:
+      component: dev
+      commandLine: "pip install -r requirements.txt"
+      workingDir: ${PROJECT_SOURCE}
+  - id: install-dev
+    exec:
+      component: dev
+      commandLine: "pip install -r requirements.txt pytest pylint"
+      workingDir: ${PROJECT_SOURCE}
+  - id: lint
+    exec:
+      component: dev
+      commandLine: "pylint *.py"
+      workingDir: ${PROJECT_SOURCE}
+  - id: test
+    exec:
+      component: dev
+      commandLine: "pytest"
+      workingDir: ${PROJECT_SOURCE}
