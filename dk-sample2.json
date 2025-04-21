@@ -1,0 +1,150 @@
+{
+  "categories": [
+    {
+      "name": "Electronics",
+      "categories": [
+        {
+          "name": "Televisions & Audio",
+          "categories": [
+            {
+              "name": "Televisions",
+              "attributes": ["Brand", "Screen Size (Inches)", "4K Resolution", "Smart TV", "Display Type (LED/OLED)"]
+            },
+            {
+              "name": "Home Theater Systems",
+              "attributes": ["Type (AV Receiver/Soundbar)", "Power (W)", "Bluetooth Support", "Input/Output Ports"]
+            }
+          ],
+          "attributes": ["Warranty (Years)"]
+        },
+        {
+          "name": "Smartphones & Tablets",
+          "categories": [
+            {
+              "name": "Smartphones",
+              "attributes": ["Brand", "OS (Android/iOS)", "RAM (GB)", "Storage (GB)", "Battery Capacity (mAh)"]
+            },
+            {
+              "name": "Tablets",
+              "attributes": ["Brand", "Screen Size (inches)", "Pen Support", "Connectivity (5G/Wi-Fi)"]
+            }
+          ],
+          "attributes": ["Release Year", "Display Size Range (inches)"]
+        },
+        {
+          "name": "Home Appliances",
+          "categories": [
+            {
+              "name": "Refrigerators",
+              "attributes": ["Capacity (L)", "Type (Two-Door/Freezer)", "Energy Efficiency"]
+            },
+            {
+              "name": "Washing Machines",
+              "attributes": ["Type (Front-Load/Top-Load)", "Capacity (kg)", "Spin Speed (rpm)"]
+            }
+          ],
+          "attributes": ["Price Range (TOMAN)"]
+        }
+      ]
+    },
+    {
+      "name": "Home & Living",
+      "categories": [
+        {
+          "name": "Furniture",
+          "categories": [
+            {
+              "name": "Sofas",
+              "attributes": ["Material (Fabric/Leather)", "Color", "Number of Seats", "Frame Type"]
+            },
+            {
+              "name": "Beds",
+              "attributes": ["Bed Type (Single/Double)", "Material", "Headboard Style", "Dimensions (cm)"]
+            }
+          ],
+          "attributes": ["Brand", "Delivery Available"]
+        },
+        {
+          "name": "Kitchen & Dining",
+          "categories": [
+            {
+              "name": "Cookware",
+              "attributes": ["Material (Stainless Steel/Non-Stick)", "Set Includes", "Brand"]
+            },
+            {
+              "name": "TableWARE",
+              "attributes": ["Material (Ceramic/Plastic)", "Set Pieces", "Color"]
+            }
+          ],
+          "attributes": ["Diameter/W & T Dimensions"]
+        }
+      ]
+    },
+    {
+      "name": "Beauty & Health",
+      "categories": [
+        {
+          "name": "Skincare",
+          "categories": [
+            {
+              "name": "Moisturizers",
+              "attributes": ["Skin Type (Dry/Oily)", "Function (Hydration/Anti-Aging)", "Brand"]
+            },
+            {
+              "name": "Sunscreen",
+              "attributes": ["SPF Level", "Form (Lotion/Spray)", "Oil-Free Option"]
+            }
+          ],
+          "attributes": ["Organic Certification"]
+        },
+        {
+          "name": "Hair Care",
+          "categories": [
+            {
+              "name": "Shampoos",
+              "attributes": ["Hair Type (Color-Treated/Damaged)", "Ingredients (Argan/Olive Oil)", "Brand"]
+            },
+            {
+              "name": "Conditioners",
+              "attributes": ["Moisturizing Level", "Color Safety", "Pack Size"]
+            }
+          ],
+          "attributes": ["Sulfate-Free Option"]
+        }
+      ]
+    },
+    {
+      "name": "Fashion & Apparel",
+      "categories": [
+        {
+          "name": "Women's Fashion",
+          "categories": [
+            {
+              "name": "Dresses",
+              "attributes": ["Length (Mini/Maxi)", "Material Type", "Neckline Type (V-Neck/Off-Shoulder)", "Pattern"]
+            },
+            {
+              "name": "Tops",
+              "attributes": ["Fit (Slim/Fitted)", "Sleeve Length (Long/Sleeveless)", "Occasion (Casual/Formal)"]
+            }
+          ],
+          "attributes": ["Size Available (S-M-L-XL)", "Color Options"]
+        },
+        {
+          "name": "Men's Fashion",
+          "categories": [
+            {
+              "name": "Formal Wear",
+              "attributes": ["Clothing Type (Suit/Tuxedo)", "Material (Cotton/Linen)", "Brand"]
+            },
+            {
+              "name": "Footwear",
+              "attributes": ["Shoe Type (Oxfords/Dress Shoes)", "Fit Comfort Index", "Color"]
+            }
+          ],
+          "attributes": ["Season (Winter/Summer)"]
+        }
+      ]
+    }
+  ]
+}

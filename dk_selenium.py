@@ -2,45 +2,49 @@ import json
 from time import sleep
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.options import Options  # Import Firefox options
+from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 def scrape_digikala_categories():
-    # Set up Firefox options
     options = Options()
-    options.add_argument("--headless")  # Run in headless mode
-    driver = webdriver.Firefox(options=options)
+    options.add_argument("--headless")
+    service = Service()
+    driver = webdriver.Firefox(service=service, options=options)
     driver.maximize_window()
 
     try:
-        # Navigate to Digikala's homepage
         driver.get("https://www.digikala.com/")
-        sleep(5)  # Wait for the page to load
+        
+        # Wait for the header element
+        try:
+            header_element = WebDriverWait(driver, 20).until(
+                EC.presence_of_element_located((By.ID, "header"))
+            )
+        except Exception as e:
+            print("Header element not found:", e)
+            return None
 
-        # Dictionary to store categories and subcategories
+        # Find menu items
+        menu_items = WebDriverWait(driver, 20).until(
+            EC.presence_of_all_elements_located((By.XPATH, "//a[@class='menu__megamenu-tab--text']"))
+        )
+
         categories_data = {"categories": {}}
-
-        # Find the main menu
-        main_menu = driver.find_element(By.ID, "header")
-        menu_items = main_menu.find_elements(By.XPATH, "//a[@class='menu__megamenu-tab--text']")
 
         for menu_item in menu_items:
             category_name = menu_item.text.strip()
-            # Click on the category to load subcategories
             ActionChains(driver).move_to_element(menu_item).click().perform()
             sleep(2)
 
-            # Get the subcategories for the current category
             subcategories = menu_item.find_elements(By.XPATH, "./following-sibling::div//ul/li/a")
             if subcategories:
-                category_urls = []
                 categories_data["categories"][category_name] = {
                     "url": menu_item.get_attribute("href"),
                     "subcategories": {}
                 }
-
                 for subcategory in subcategories:
                     subcategory_name = subcategory.text.strip()
                     subcategory_url = subcategory.get_attribute("href")
